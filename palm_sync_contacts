@@ -1,0 +1,114 @@
+#!/bin/bash
+
+HOST="<LDAP>"
+DN="<DN>"
+PASSWORD="<PASS>"
+FILE=test
+
+VCARDNUMBER=0
+echo "ldapsearch -v -w \"$PASSWORD\" -x -D \"$DN\" -H \"$HOST\" -b \"$DN\" -LLL -s one"
+
+		CATEGORY="\"\""
+		LAST="\"\""
+		FIRST="\"\""
+		TITLE="\"\""
+		COMPANY="\"\""
+		MOBILE="\"\""
+		HOME="\"\""
+		FAX="\"\""
+		OTHER="\"\""
+		MAIL="\"\""
+		ADDRESS="\"\""
+		CITY="\"\""
+		STATE="\"\""
+		ZIP="\"\""
+		COUNTRY="\"\""
+		CUSTOM1="\"\""
+		CUSTOM2="\"\""
+		CUSTOM3="\"\""
+		CUSTOM4="\"\""
+		NOTE="\"\""
+
+(echo ;ldapsearch -ZZ -w "$PASSWORD" -x -D "$DN" -h "$HOST" -b "$DN" -LLL -s one) | \
+while read line
+do
+	if [ "x$line" = "x" ]
+	then
+		if [ "x$CATEGORY" = "x" ]
+		then
+			CATEGORY="\"iUnfiled\""
+		fi
+		echo "$CATEGORY,\"0\",$LAST,$FIRST,$TITLE,$COMPANY,$WORK,$HOME,$FAX,$MOBILE,$MAIL,$ADDRESS,$CITY,$STATE,$ZIP,$COUNTRY,$CUSTOM1,$CUSTOM2,$CUSTOM3,$CUSTOM4,$NOTE,\"0\",\"1\",\"2\",\"7\",\"4\",\"0\"" >> "$FILE"
+		CATEGORY="\"\""
+		LAST="\"\""
+		FIRST="\"\""
+		TITLE="\"\""
+		COMPANY="\"\""
+		MOBILE="\"\""
+		HOME="\"\""
+		FAX="\"\""
+		WORK="\"\""
+		MAIL="\"\""
+		ADDRESS="\"\""
+		CITY="\"\""
+		STATE="\"\""
+		ZIP="\"\""
+		COUNTRY="\"\""
+		CUSTOM1="\"\""
+		CUSTOM2="\"\""
+		CUSTOM3="\"\""
+		CUSTOM4="\"\""
+		NOTE="\"\""
+		continue
+	fi
+	ATTRIBUTE=`echo "$line" | sed 's@\([^:]*\):.*@\1@'`
+	IS_BASE64_ENCODED=`echo "$line" | sed 's@[^:]*:: \(.*\)@yes@'`
+	if [ "$IS_BASE64_ENCODED" = "yes" ]
+	then
+		VALUE=`echo "$line" | sed 's@[^:]*:: \(.*\)@\1@'`
+		PHP="php -r '\$result=explode(\"\\n\",base64_decode(\"$VALUE\"));\$result=array_map(\"trim\",\$result);\$result=array_map(\"ltrim\",\$result);echo implode(\";\",\$result).\"\\n\";'"
+		VALUE=`eval $PHP`
+	else
+		VALUE=`echo "$line" | sed 's@[^:]*: \(.*\)@\1@'`
+	fi
+
+	case "$ATTRIBUTE" in
+		businessCategory)
+			CATEGORY="\"$VALUE\""
+			;;
+		mail)
+			MAIL="\"$VALUE\""
+			;;
+		mobile)
+			MOBILE="\"$VALUE\""
+			;;
+		homePhone)
+			HOME="\"$VALUE\""
+			;;
+		sn)
+			LAST="\"$VALUE\""
+			;;
+		title)
+			TITLE="\"$VALUE\""
+			;;
+		o)
+			COMPANY="\"$VALUE\""
+			;;
+		telephoneNumber)
+			WORK="\"$VALUE\""
+			;;
+		facsimileTelephoneNumber)
+			FAX="\"$VALUE\""
+			;;
+		givenName)
+			FIRST="\"$VALUE\""
+			;;
+		birthDate)
+			VALUE=`echo $VALUE | sed "s@..\(..\)\(..\)\(..\).*@\3/\2/\1@"`
+			CUSTOM1="\"$VALUE\""
+			;;
+		*)
+			;;
+	esac;
+
+done;

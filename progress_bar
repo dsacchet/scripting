@@ -1,0 +1,83 @@
+# http://www.posteet.com/view/1316
+#
+# gestion de la langue de l'environnement
+# LC_NUMERIC=C
+# 
+# init_progress_bar
+# 
+# liste_length=$#
+# nb_iterations=0
+# if test $liste_length -gt 0
+# then
+#         for i in "$@"
+#         do
+#                 nb_iterations=`echo "$nb_iterations + 1" | bc`
+#          #       $i 2>&1 >/dev/null
+#                 barre_progression "$nb_iterations" "$liste_length"
+#                 sleep 1
+#         done
+# fi
+# 
+# echo " "
+# 
+
+progress_bar () 
+{ 
+	current=$1 
+	total=$2 
+	percentage=$(echo "scale=2;($current*100)/$total" | bc)
+
+	nb_char_done=$(echo "scale=0;$percentage/$graduation" | bc)
+	if [ $nb_char_done -gt $bar_length ]
+	then
+		nb_char_done=$bar_length
+	fi
+	nb_char_not_done=$(($bar_length-$nb_char_done))
+	bar="" 
+	while [ $nb_char_done -gt 0 ]
+	do 
+		bar="${bar}${char_done}" 
+		nb_char_done=$(($nb_char_done-1))
+	done 
+	while [ $nb_char_not_done -gt 0 ]
+	do 
+		bar="${bar}${char_not_done}" 
+		nb_char_not_done=$(($nb_char_not_done-1))
+	done 
+	printf "%b%s[%s] % 7s%%%b" "\r" "$label" "$bar" "$percentage" "\r\c"
+} 
+  
+# INITIALISATION DE LA BARRE DE PROGRESSION 
+init_progress_bar () 
+{ 
+        # caractere qui sera affiche dans la barre de progression 
+        char_done="$1" 
+        char_not_done="$2" 
+	label="$3"
+        
+        # detection de l'OS 
+        os=$(uname -s | tr [a-z] [A-Z])
+        
+        # recuperation de la largeur en caracteres du terminal 
+	case "$os" in
+		"LINUX") screen_width=$(stty -a | grep columns | cut -d ' ' -f7 | tr -d ';') ;;
+		"SUNOS") screen_width=$(stty | grep columns | cut -d ' ' -f6 | tr -d ';') ;;
+		*) exit 1;;
+	esac
+        
+        # calcul de la largeur optimale de la barre de progression 
+        bar_length=$(($screen_width-11-${#label}))
+        graduation=$(echo "scale=2;100 / $bar_length" | bc)
+}
+
+#init_progress_bar "#" "." "Test : "
+#
+#current=0
+#total=10
+#for i in 1 2 3 4 5 6 7 8 9 0
+#do
+#	current=$(($current+1))
+#	progress_bar $current $total
+#	sleep 1
+#done
+#echo

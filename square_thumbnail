@@ -1,0 +1,25 @@
+#!/bin/bash
+
+OUTRES=$1
+INFILE=$2
+
+if [ ! -r "$INFILE" ]
+then
+	echo "Impossible de lire le fichier source" 1>&2
+	exit 1
+fi
+
+OUTFILE=${INFILE%.jpg}.thumbnail.jpg
+
+RESOLUTION=`identify "$INFILE" | sed "s@.* \([0-9]*x[0-9]*\) .*@\1@"`
+WIDTH=`echo $RESOLUTION | cut -f 1 -d "x"`
+HEIGHT=`echo $RESOLUTION | cut -f 2 -d "x"`
+
+if [ $WIDTH -gt $HEIGHT ]
+then
+	convert "$INFILE" -crop ${HEIGHT}x${HEIGHT}+$((($WIDTH-$HEIGHT)/2))+0 - | convert - -resize ${OUTRES}x${OUTRES} -format jpg -quality 91 "$OUTFILE"
+else
+	convert "$INFILE" -crop ${WIDTH}x${WIDTH}+0+$((($HEIGHT-$WIDTH)/2)) - | convert - -resize ${OUTRES}x${OUTRES} -format jpg -quality 91 "$OUTFILE"
+fi
+
+

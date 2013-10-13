@@ -1,0 +1,245 @@
+#!/bin/bash
+
+COMMENTAIRE=
+PREFIX=
+ARTICLE=
+DATE=
+ORIGINAL=
+SITE=koyaba.sacchet.fr
+LINKS_FILE=links.txt
+DISPLAY_SIZE=780
+THUMBNAIL_SIZE=100
+FTP_SERVER=s001.hosting.zaas.fr
+FTP_USER=anonymous
+FTP_USE_TLS=1
+FTP_PASSWORD=
+REMOTE_BASE=/htdocs/wp-content/uploads/
+DOCUMENT_ROOT_LEVEL=1
+CURL_OPTIONS=
+UPLOAD_SCHEME=date
+ORIGINAL=n
+
+function usage() {
+        echo "traite_photos_blog <ARGUMENTS>"
+        echo " -h / --help : affiche ce message et sort"
+        echo " -c / --commentaire : spécifie le commentaire par défaut des photos"
+        echo " -p / --prefix : specifie le prefix utilisé dans les photos (Le nom de la photo sera : <date>-<prefix>-<num>.jpg)"
+        echo " -a / --article : spécifie le numero de l'article"
+        echo " -d / --date : spécifie la date de l'article"
+        echo " -S / --site : site (par défaut : $SITE)"
+	echo " -l / --links-file : fichier contenant la liste des liens générés (par défaut : $LINKS_FILE)"
+        echo " -D / --display-size : taille des images à afficher (par défaut : $DISPLAY_SIZE)"
+        echo " -t / --thumbnail-size : taille des miniatures (par défaut : $THUMBNAIL_SIZE)"
+        echo " -o / --original : crée une archive des photos originales"
+        echo " -f / --ftp-server : serveur ftp (par défaut : $FTP_SERVER)"
+        echo " -u / --ftp-user : utilisateur pour se connecter au ftp (par défaut : $FTP_USER)"
+        echo " -p / --ftp-password : mot de passe pour se connecter"
+	echo "                       si ftp-user est spécifié et différent d'anonymous, et si le mot de passe n'est pas passé sur la ligne de commande, il sera demander en interactif"
+	echo "                       si ftp-user est anonymous, alors le mot de passe sera par défaut $USER@$(hostname -f)"
+        echo " -r / --remote-base : répertoire d'upload (par défaut : $REMOTE_BASE)"
+	echo " -L / --document-root-level : niveau du document root par rapport au remote-base (par défaut : $DOCUMENT_ROOT_LEVEL)"
+	echo " -U / --upload-scheme : article ou date (par défaut : $UPLOAD_SCHEME)"
+        echo " -C / --curl-options : ajouter des options a l'appel de curl (pour mode tls de pureftpd : '--ftp-ssl-reqd -k --disable-epsv')"
+}
+
+source /usr/local/bin/progress_bar
+
+# Traitement des options de la ligne de commande
+TEMP=`getopt -o hc:p:a:d:S:l:D:t:f:u:p:r:L:C:U:o -l help,commentaire:,prefix:,article:,date:,site:,display-size:,thumbnail-size:,ftp-server:,ftp-password:,ftp-user:,remote-base:,curl-options:,upload-scheme:,document-root-level,original -n '' -- "${@}"`
+
+if [ ${?} != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+
+eval set -- "${TEMP}"
+
+while true ; do
+        case "${1}" in
+                -c|--commentaire) COMMENTAIRE="${2}"; shift 2 ;;
+                -p|--prefix) PREFIX="${2}"; shift 2 ;;
+                -a|--article) ARTICLE="${2}"; shift 2 ;;
+                -d|--date) DATE="${2}"; shift 2 ;;
+                -S|--site) SITE="${2}"; shift 2 ;;
+                -l|--links) LINKS_FILE="${2}"; shift 2 ;;
+                -D|--display-size) DISPLAY_SIZE="${2}"; shift 2 ;;
+                -t|--thumbnail-size) THUMBNAIL_SIZE="${2}"; shift 2 ;;
+                -f|--ftp-server) FTP_SERVER="${2}"; shift 2 ;;
+                -u|--ftp-user) FTP_USER="${2}"; shift 2 ;;
+                -p|--ftp-password) FTP_PASSWORD="${2}"; shift 2 ;;
+                -r|--ftp-remote_base) REMOTE_BASE="${2}"; shift 2 ;;
+                -C|--curl-options) CURL_OPTIONS="${2}"; shift 2 ;;
+                -U|--upload-scheme) UPLOAD_SCHEME="${2}"; shift 2 ;;
+                -L|--document-root-level) DOCUMENT_ROOT_LEVEL="${2}"; shift 2 ;;
+                -o|--original) ORIGINAL=o; shift 1 ;;
+                -h|--help) usage; exit ${ERR_OK} ;;
+                --) shift; break ;;
+                *) echo "Erreur : ${1} est un paramètre non valide" 1>&2; usage 1>&2; exit 1 ;;
+        esac;
+done;
+
+# Verification des options obligatoires
+if [ "x$COMMENTAIRE" = "x" ]; then echo "L'option -c / --commentaire est obligatoire" 1>&2; exit 1; fi;
+if [ "x$PREFIX" = "x" ]; then echo "L'option -p / --prefix est obligatoire" 1>&2; exit 1; fi;
+if [ "x$ARTICLE" = "x" ]; then echo "L'option -a / --article est obligatoire" 1>&2; exit 1; fi;
+if [ "x$REMOTE_BASE" = "x" ]; then echo "L'option -r / --remote-base est obligatoire" 1>&2; exit 1; fi;
+
+# Verification de la validite des options
+if [ "x$(echo "$ARTICLE" | sed 's@^[0-9]\+$@ok@')" != "xok" ]; then echo "L'option -a / --article doit être un nombre" 1>&2; exit 1; fi;
+if [ "x$(echo "$REMOTE_BASE" | sed 's@^/.*$@ok@')" != "xok" ]; then echo "L'option -r / --remote-base doit commencer par /" 1>&2; exit 1; fi;
+if [ "x$(echo "$REMOTE_BASE" | sed 's@^.*/$@ok@')" != "xok" ]; then echo "L'option -r / --remote-base doit finir par /" 1>&2; exit 1; fi;
+if [ "x$(echo "$THUMBNAIL_SIZE" | sed 's@^[0-9]\+$@ok@')" != "xok" ]; then echo "L'option -t / --thumnail_size doit être un nombre" 1>&2; exit 1; fi;
+if [ "x$(echo "$DISPLAY_SIZE" | sed 's@^[0-9]\+$@ok@')" != "xok" ]; then echo "L'option -d / --display-size doit être un nombre" 1>&2; exit 1; fi;
+if [ "x$UPLOAD_SCHEME" != "xdate" -a "x$UPLOAD_SCHEME" != "xarticle" ]; then echo "L'option -S / --upload-scheme doit être date ou article" 1>&2; exit 1; fi
+if [ "x$(echo "$DOCUMENT_ROOT_LEVEL" | sed 's@^[0-9]\+$@ok@')" != "xok" ]; then echo "L'option -L / --document-root-level doit être un nombre" 1>&2; exit 1; fi;
+
+# Verification de la disponibilité des logiciels de traitement
+which exifautotran &> /dev/null; if [ $? -ne 0 ]; then echo "Le binaire exifautotran n'est pas disponible dans le path" 1>&2; exit 1; fi;
+which convert &> /dev/null; if [ $? -ne 0 ]; then echo "Le binaire exifautotran n'est pas disponible dans le path" 1>&2; exit 1; fi;
+which add_date &> /dev/null; if [ $? -ne 0 ]; then echo "Le binaire exifautotran n'est pas disponible dans le path" 1>&2; exit 1; fi;
+which square_thumbnail &> /dev/null; if [ $? -ne 0 ]; then echo "Le binaire exifautotran n'est pas disponible dans le path" 1>&2; exit 1; fi;
+which zip &> /dev/null; if [ $? -ne 0 ]; then echo "Le binaire zip n'est pas disponible dans le path" 1>&2; exit 1; fi;
+
+# Traitement des options liées au ftp
+if [ "x$FTP_USER" = "x" ]; then FTP_USER=anonymous; fi
+if [ "x$FTP_USER" = "xanonymous" -a "x$FTP_PASSWORD" = "x" ]; then FTP_PASSWORD=$USER@$(hostname -f); fi;
+if [ "x$FTP_USER" != "xanonymous" -a "x$FTP_PASSWORD" = "x" ]; then read -p "Mot de passe FTP :" -s FTP_PASSWORD; echo; fi
+curl ${CURL_OPTIONS} "ftp://${FTP_SERVER}${REMOTE_BASE}" --user "$FTP_USER:$FTP_PASSWORD" &> /dev/null; if [ $? -ne 0 ]; then echo "Impossible de se connecter au serveur ftp, vérifiez les options" 1>&2; exit 1; fi;
+URL_BASE=${REMOTE_BASE#*/}; for ((i=0;i<$DOCUMENT_ROOT_LEVEL;i++)); do URL_BASE=${URL_BASE#*/}; done; URL_BASE="/$URL_BASE";
+
+case "${UPLOAD_SCHEME}" in
+	date)
+		if [ "x$DATE" = "x" ]; then echo "L'option -d / --date est obligatoire" 1>&2; exit 1; fi;
+		if [ "x$(echo $DATE | sed 's@^[0-9][0-9][0-9][0-9]/[0-9][0-9]$@ok@')" != "xok" ]; then echo "L'option -d / --date doit être au format YYYY/MM" 1>&2; exit 1; fi;
+		REMOTE_BASE="${REMOTE_BASE}${DATE}/"
+		URL_BASE="${URL_BASE}${DATE}/"
+		;;
+	article)
+		REMOTE_BASE="${REMOTE_BASE}$(printf '%04d' $ARTICLE)/"
+		URL_BASE="${URL_BASE}$(printf '%04d' $ARTICLE)/"
+		;;
+esac
+
+# Auto rename JPG => jpg
+total=$(ls *.JPG 2> /dev/null | wc -l)
+
+if [ $total -ne 0 ]
+then
+	echo -n "Auto rename JPG => jpg"
+	init_progress_bar "#" "." "Auto rename JPG => jpg : "; current=0
+	for i in *.JPG
+	do
+		mv "$i" "${i%.JPG}.jpg"
+		current=$(($current+1)); progress_bar $current $total
+	done
+	echo
+fi
+
+# Y a t il des photos à traiter ? 
+total=$(ls *.jpg 2> /dev/null | wc -l)
+
+if [ $total -eq 0 ]
+then
+	echo "Pas de photos à traiter"
+	exit 0
+fi
+
+# Auto rotate
+init_progress_bar "#" "." "Auto rotate : "; current=0
+for i in *.jpg; do
+	/usr/bin/exifautotran "$i"
+	current=$(($current+1)); progress_bar $current $total
+done
+echo
+
+# Add date
+init_progress_bar "#" "." "Add date : "; current=0
+for i in *.jpg
+do
+	add_date "$i"
+	current=$(($current+1)); progress_bar $current $total
+done
+echo
+
+# Numerotation et backup
+init_progress_bar "#" "." "Numerotation et backup : "; current=0
+i=1
+mkdir -p backup
+for file in *.jpg
+do
+	chiffre=$(printf "%03d" $i)
+	destfile=$(echo $file | sed "s@\(........\)-.*\.jpg@\1-$PREFIX-$chiffre.jpg@")
+	mv "$file" "$destfile"
+	cp "$destfile" backup
+	i=$((i+1))
+	current=$(($current+1)); progress_bar $current $total
+done
+echo
+
+# Resize
+init_progress_bar "#" "." "Resize : "; current=0
+for i in *.jpg
+do
+	convert "$i" -resize ${DISPLAY_SIZE}x${DISPLAY_SIZE} "$i.new"
+	mv "$i.new" "$i"
+	current=$(($current+1)); progress_bar $current $total
+done
+echo
+
+# Thumbnailing
+init_progress_bar "#" "." "Thumbnailing : "; current=0
+for i in *.jpg
+do
+	square_thumbnail ${THUMBNAIL_SIZE} "$i"
+	current=$(($current+1)); progress_bar $current $total
+done
+echo
+
+# Original archive
+
+if [ "$ORIGINAL" = "o" ]
+then
+	total=$(ls backup/* | wc -l)
+	mv backup "${SITE}-article-${ARTICLE}"
+	init_progress_bar "#" "." "Create archive with original photos : "; current=0; total=$(($total+1))
+	zip -r "${SITE}-article-${ARTICLE}.zip" "${SITE}-article-${ARTICLE}" | while read line
+	do
+		current=$(($current+1)); progress_bar $current $total
+	done
+	echo
+	mv "${SITE}-article-${ARTICLE}" backup
+fi
+
+
+# Generate links file
+init_progress_bar "#" "." "Generate links file : "; current=0
+total=$(ls *${PREFIX}-???.jpg *.zip 2> /dev/null | wc -l)
+rm -f "${LINKS_FILE}" 2> /dev/null
+for i in $(ls -1 --color=none *${PREFIX}-???.jpg 2> /dev/null | grep -v thumbnail.jpg)
+do
+	echo -n "<a href=\"http://${SITE}${URL_BASE}${i}\" rel=\"lightbox[${ARTICLE}]\" title=\"${COMMENTAIRE}\"><img src=\"http://${SITE}${URL_BASE}${i%.jpg}.thumbnail.jpg\" alt=\"${COMMENTAIRE}\" /></a> " >> "${LINKS_FILE}"
+	current=$(($current+1)); progress_bar $current $total
+done
+echo >> "${LINKS_FILE}"
+if [ "$ORIGINAL" = "o" ]
+then
+	echo >> "${LINKS_FILE}"
+	echo "<a href=\"http://${SITE}${URL_BASE}${SITE}-article-${ARTICLE}.zip\">Télécharger les photos originales</a>" >> "${LINKS_FILE}"
+	current=$(($current+1)); progress_bar $current $total
+fi
+echo
+
+# Upload photos
+total=$(ls *.jpg 2> /dev/null | wc -l)
+total=$(($total+1))
+UPLOAD_LIST="{$(ls -1 --color=none *${PREFIX}-???.jpg *${PREFIX}-???.thumbnail.jpg 2> /dev/null | while read file; do echo -n "$file,"; done)"
+if [ "$ORIGINAL" = "o" ]
+then
+	total=$(($total+1))
+	UPLOAD_LIST="$UPLOAD_LIST${SITE}-article-${ARTICLE}.zip,"
+fi
+UPLOAD_LIST="${UPLOAD_LIST:0:$((${#UPLOAD_LIST}-1))}}"
+init_progress_bar "#" "." "Upload files : "; current=-1
+curl ${CURL_OPTIONS} -T "${UPLOAD_LIST}" "ftp://${FTP_SERVER}${REMOTE_BASE}" --user "$FTP_USER:$FTP_PASSWORD" --ftp-create-dirs 2>&1 | while read line
+do
+	if [ $current -eq $total ]; then continue; fi
+	current=$(($current+1)); progress_bar $current $total
+done
+echo

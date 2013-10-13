@@ -1,0 +1,26 @@
+#!/bin/bash
+
+INFILE=$1
+
+if [ ! -r "${INFILE}" ]
+then
+	echo "Impossible de lire le fichier source" 1>&2
+	exit 1
+fi
+
+if [ "x$(file "${INFILE}" | sed "s@^.*JPEG image data.*@JPEG@")" != "xJPEG" ]
+then
+	echo "Le fichier n'est pas une image" 1>&2
+	exit 1
+fi
+
+exif --ifd="EXIF" -t 0x9003 "${INFILE}" &> /dev/null
+
+if [ $? -eq 0 ]
+then
+	DATE=$(exif --ifd="EXIF" -t 0x9003 "${INFILE}" | grep Value | sed "s@^.* \([0-9][0-9][0-9][0-9]\):\([0-9][0-9]\):\([0-9][0-9]\) .*@\1\2\3@")
+else
+	DATE=`stat -c "%y" "${INFILE}" | sed "s@^\(....\)-\(..\)-\(..\) .*@\1\2\3@"`
+fi
+
+mv "${INFILE}" "$(dirname "${INFILE}")"/"$DATE-$(basename ${INFILE})"

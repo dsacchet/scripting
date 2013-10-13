@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ICS_DIR=$1
+MOUNTPOINT=$2
+
+find "$ICS_DIR" -name "*.ics" -exec cp {} "${MOUNTPOINT}"/Calendars \;

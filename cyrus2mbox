@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]
+then
+	echo "Usage : cyrus2mbox <path to cyrus folder> <path to destination mbox file>"
+	exit 1
+fi
+
+CYRUS=$1
+MBOX=$2
+
+if [ ! -d "$CYRUS" ]
+then
+	echo "The first paramater must be a directory"
+	exit 1
+fi
+
+if [ ! -r "$CYRUS" ]
+then
+	echo "The first parameter must be a readable directory"
+	exit 1
+fi
+
+touch "$MBOX" &> /dev/null
+if [ $? -ne 0 ]
+then
+	echo "Unable to create destination mbox file"
+	exit 2
+fi
+
+for i in "$1"/*.
+do
+	FROM=`egrep '^Return-Path: ' "$i" | sed "s@[^<]*<\([^>]*\)>.*@\1@"`
+#	echo $FROM
+#	DATE=`egrep '^Date: ' "$i"`
+#	echo $DATE
+	echo "From $FROM Sat Jan  3 01:05:34 1996" >> "$2"
+	cat $i >> "$2"
+	echo >> "$2"
+done

@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# Ce script peut être utilisé dans Thunar ou en ligne de commande
+# pour redimmensionner une liste de photo dans une resolution cible
+#
+# Il nécessite zenity et ImageMagick pour fonctionner et par conséquent
+# ne fonctionne que si un serveur X11 est disponible.
+#
+# Pour rajouter une action personnalisée dans Thunar, aller dans le
+# menu "Edit->Configure custom actions ..." et renseigner les champs
+# comme suit :
+#
+# Onglet "Basic" :
+# Name : Resize image
+# Description : Allow to resize image
+# Command : <path to>/resize_photo %F
+# Onglet : "Appearance Conditions"
+# File Pattern : *
+# Appears if selection contains : Image files
+#
+# Les fichiers redimensionnés sont nommés comme suit :
+# <nom de fichier original sans extension>-<resolution>.<extension originale>
+# <nom de fichier original>-<resolution> si le fichier n'avait pas d'extension
+
+SIZE=$(zenity --entry --text="Entrer la resolution cible" --entry-text="1024")
+
+if [ $? -eq 1 ]
+then
+	exit 0
+fi
+
+if [ "x${SIZE}" = "xok" -o x`echo ${SIZE} | sed 's@^[0-9]*$@ok@'` != "xok" ]
+then
+	zenity --error --text="$SIZE n'est pas une valeur correcte"
+	exit 1
+fi
+
+NB_PHOTOS=$#
+CURRENT_PHOTO=0
+
+RESULTFILE=`mktemp`
+LISTFILES=`mktemp`
+
+until [ -z "$1" ]
+do
+	source=$(realpath "$1")
+	CURRENT_PHOTO=$(($CURRENT_PHOTO+1))
+	PERCENTAGE=$(($CURRENT_PHOTO*100/$NB_PHOTOS))
+	echo $PERCENTAGE
+	echo "# Traitement de $source"
+	if [ "x$(identify "$source" | sed "s@$source JPEG .*@ok@")" = "xok" ]
+	then
+		cible=`echo "$source" | sed "s@\(.*\)\.\([^\.]*\)@\1-${SIZE}.\2@"`
+		if [ "$cible" = "$source" ]
+		then
+			cible="${1}-${SIZE}"
+		fi
+		convert "$source" -resize ${SIZE}x${SIZE} "$cible"
+		if [ $? -eq 0 ]
+		then
+			echo "L'image $source a été redimensionnée avec succès" >> "$RESULTFILE"
+			echo $cible >> "$LISTFILES"
+		else
+			echo "Il y a une erreur lors du redimmensionnement de l'image $1" >> "$RESULTFILE"
+		fi
+	else
+		echo "Le fichier $source n'est pas un fichier JPEG" >> "$RESULTFILE"
+	fi
+	shift
+done | zenity --progress --title "Traitement des photos" --percentage=0 --auto-close
+
+echo $RESULT
+
+zenity --text-info --width=640 --title="Compte rendu" --filename="$RESULTFILE"
+rm -f "$RESULTFILE"
+
+OLDIFS=$IFS
+IFS=$'\n'
+for i in $(cat "$LISTFILES")
+do
+	attachments="${attachments}file://$i,"
+done
+thunderbird -compose "attachment='${attachments:0:$((${#attachments}-1))}'"

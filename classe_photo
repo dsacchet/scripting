@@ -1,0 +1,42 @@
+#!/bin/bash
+
+if [ ! -z "$1" ]
+then
+	ORIG_DIR=$(realpath $1)
+else
+	ORIG_DIR=$(pwd)
+fi
+BASE_DIR=/home/maison/datas/photos
+GET_DATE=/home/maison/datas/documents/scripts/get_date.sh
+GET_MODEL=/home/maison/datas/documents/scripts/get_model.sh
+
+NB_PHOTOS=$(find "$ORIG_DIR" -mindepth 1 -maxdepth 1 -type f  | egrep -i '\.(jpg|jpeg|cr2|dng)$' | wc -l)
+CURRENT_PHOTO=0
+
+IFS=$'\n'
+for FILE in $(find "$ORIG_DIR" -mindepth 1 -maxdepth 1 -type f | egrep -i '\.(jpg|jpeg|cr2|dng)$')
+do
+	CURRENT_PHOTO=$(($CURRENT_PHOTO+1))
+	PERCENTAGE=$(($CURRENT_PHOTO*100/$NB_PHOTOS))
+	echo $PERCENTAGE
+
+	echo "# Traitement de $FILE"
+
+	DATE=$("$GET_DATE" "$FILE")
+	if [[ ! $DATE =~ ^[0-9]{8}$ ]]
+	then
+		echo "# Impossible de recuperer la date du fichier $FILE"
+		continue
+	fi
+	YEAR=${DATE:0:4}
+	MONTH=${DATE:4:2}
+	MODEL=$("$GET_MODEL" "$FILE")
+	DEST_DIR="$BASE_DIR/$MODEL/$YEAR/$MONTH/$DATE"
+	mkdir -p "$DEST_DIR"
+	if [ -f "$DEST_DIR/${FILE##*/}" ]
+	then
+		echo "# Le fichier $FILE existe déja dans le répertoire $DEST_DIR"
+		continue
+	fi
+	mv "$FILE" "$DEST_DIR"
+done

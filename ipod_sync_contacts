@@ -1,0 +1,88 @@
+#!/bin/bash
+
+HOST=$1
+DN=$2
+PASSWORD=$3
+MOUNTPOINT=$4
+
+VCARDNUMBER=0
+echo "ldapsearch -ZZ -w \"$PASSWORD\" -x -D \"$DN\" -h \"$HOST\" -b \"$DN\" -LLL -s one"
+
+(echo ;ldapsearch -ZZ -w "$PASSWORD" -x -D "$DN" -h "$HOST" -b "$DN" -LLL -s one) | \
+#(echo ;ldapsearch -w "$PASSWORD" -x -D "$DN" -H "ldaps://$HOST/" -b "$DN" -LLL -s one) | \
+while read line
+do
+	if [ "x$line" = "x" ]
+	then
+		if [ "x$CURRENT_FILE" != "x" ]
+		then
+			if [ "x$SN" != "x" -a "x$GIVENNAME" != "x" ]
+			then
+				echo "fn:$GIVENNAME $SN" >> "$CURRENT_FILE"
+				echo "n:$SN;$GIVENNAME;;;" >> "$CURRENT_FILE"
+			else
+				echo "fn:$CURRENT_VCARD" >> "$CURRENT_FILE"
+			fi
+			echo "end:vcard" >> "$CURRENT_FILE"
+		fi
+		read line;
+		CURRENT_VCARD=`echo $line | sed 's@dn: cn=\([^,]*\),cn=Denis Sacchet,ou=users,dc=ouba,dc=org@\1@'`
+		read line;
+		CURRENT_FILE=$MOUNTPOINT/Contacts/`echo $CURRENT_VCARD | sed 's@ @_@g'`.vcf
+		echo "begin:vcard" > "$CURRENT_FILE"
+		echo "version:3.0" >> "$CURRENT_FILE"
+	fi
+	ATTRIBUTE=`echo "$line" | sed 's@\([^:]*\):.*@\1@'`
+	IS_BASE64_ENCODED=`echo "$line" | sed 's@[^:]*:: \(.*\)@yes@'`
+	if [ "$IS_BASE64_ENCODED" = "yes" ]
+	then
+echo $line
+		VALUE=`echo "$line" | sed 's@[^:]*:: \(.*\)@\1@'`
+		PHP="php -r '\$result=explode(\"\\n\",base64_decode(\"$VALUE\"));\$result=array_map(\"trim\",\$result);\$result=array_map(\"ltrim\",\$result);echo implode(\";\",\$result).\"\\n\";'"
+		echo $PHP
+		VALUE=`eval $PHP`
+	else
+		VALUE=`echo "$line" | sed 's@[^:]*: \(.*\)@\1@'`
+	fi
+
+	case "$ATTRIBUTE" in
+		mail)
+			echo "email;internet:$VALUE" >> "$CURRENT_FILE"
+			;;
+		mobile)
+			echo "tel;type=cell:$VALUE" >> "$CURRENT_FILE"
+			;;
+		homePhone)
+			echo "tel;type=home:$VALUE" >> "$CURRENT_FILE"
+			;;
+		sn)
+			SN=$VALUE
+			;;
+		o)
+			echo "org:$VALUE;;" >> "$CURRENT_FILE"
+			;;
+		givenName)
+			GIVENNAME=$VALUE
+			;;
+		birthDate)
+			VALUE=`echo $VALUE | sed "s@\(....\)\(..\)\(..\).*@\1-\2-\3@"`
+			echo "bday;value=date:$VALUE" >> "$CURRENT_FILE"
+			;;
+		homePostalAddress)
+# post office box
+# the extended address
+# the street address
+# the locality (e.g., city)
+# the region (e.g., state or province)
+# the postal code
+# the country name
+			echo "$CURRENT_VCARD"
+			echo $VALUE
+			echo
+			;;
+		*)
+			;;
+	esac;
+		
+done;
+		

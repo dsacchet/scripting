@@ -1,0 +1,3 @@
+#!/bin/bash
+
+mplayer -ao pcm "$1" -ao pcm:file="${1%.*}.wav"
