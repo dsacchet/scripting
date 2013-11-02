@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Simple script to verify new version of mozilla products (firefox and thunderbird),
+# download them, and create symlink to last version
+#
+# Require : wget, tar, bzip2
+
+for soft in firefox thunderbird
+do
+	version=$(wget -q -O - http://download-installer.cdn.mozilla.net/pub/mozilla.org/${soft}/releases/latest/linux-x86_64/fr/ | grep -- "${soft}-" | sed "s@.*>${soft}-\(.*\).tar.bz2</a>.*@\1@")
+	if [ ! -z "${version}" -a ! -d "/opt/${soft}-${version}" ]
+	then
+		rm -rf "/tmp/${soft}"
+		wget -O "/tmp/${soft}-${version}.tar.bz2" "http://download-installer.cdn.mozilla.net/pub/mozilla.org/${soft}/releases/latest/linux-x86_64/fr/${soft}-${version}.tar.bz2"
+		tar -C 	/tmp -jxf "/tmp/${soft}-${version}.tar.bz2"
+		mv "/tmp/${soft}" "/opt/${soft}-${version}"
+		rm "/opt/${soft}"
+		ln -sf "/opt/${soft}-${version}" "/opt/${soft}"
+	fi
+done
