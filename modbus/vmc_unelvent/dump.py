@@ -108,10 +108,10 @@ elif result.registers[10] == 5:
 else:
   type_of_control = "** UNDOCUMENTED VALUE **"
 
-tint = result.registers[22]/10.0
-tout = result.registers[23]/10.0
-text = result.registers[24]/10.0
-timp = result.registers[25]/10.0
+tint = result.registers[21]/10.0
+tout = result.registers[22]/10.0
+text = result.registers[23]/10.0
+timp = result.registers[24]/10.0
 
 if result.registers[25] == 0:
   state_of_bypass = "desactivated"
@@ -164,10 +164,10 @@ print "[17] power 0-10v ............................... : ",result.registers[17]
 print "[18] ** UNDOCUMENTED / UNSED ** ................ : ",result.registers[18]
 print "[19] extract motor speed ....................... : ",result.registers[19],"Tr/mn"
 print "[20] input motor speed ......................... : ",result.registers[20],"Tr/mn"
-print "[21] temperature tint .......................... : ",tint,"oC (original value : ",result.registers[22],")"
-print "[22] temperature tout .......................... : ",tout,"oC (original value : ",result.registers[23],")"
-print "[23] temperature text .......................... : ",text,"oC (original value : ",result.registers[24],")"
-print "[24] temperature timp .......................... : ",timp,"oC (original value : ",result.registers[25],")"
+print "[21] temperature tint .......................... : ",tint,"oC (original value : ",result.registers[21],")"
+print "[22] temperature tout .......................... : ",tout,"oC (original value : ",result.registers[22],")"
+print "[23] temperature text .......................... : ",text,"oC (original value : ",result.registers[23],")"
+print "[24] temperature timp .......................... : ",timp,"oC (original value : ",result.registers[24],")"
 print "[25] state of bypass ........................... : ",result.registers[25]," <=> ",state_of_bypass
 print "[26] state of pre heating battery .............. : ",result.registers[26]," <=> ",state_of_preheating
 print "[27] state of post heating battery ............. : ",result.registers[27]," <=> ",state_of_postheating
