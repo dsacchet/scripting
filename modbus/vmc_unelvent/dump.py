@@ -19,45 +19,6 @@ def convert_bit_to_string(bit,false_value,true_value):
   else:
     return false_value
 
-result = client.read_discrete_inputs(address=0x00, count=15, unit=0x01)
-print "===================================================="
-print "DISCRETES INPUT"
-print "===================================================="
-print "[00] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[0],"False","True")
-print "[01] version ................................... : ",convert_bit_to_string(result.bits[1],"STANDARD+ABSENCE","ALLEMAGNE+STANDBY")
-print "[02] free contact .............................. : ",convert_bit_to_string(result.bits[2],"NO","NC")
-print "[03] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[3],"False","True")
-print "[04] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[4],"False","True")
-print "[05] defroost mode ............................. : ",convert_bit_to_string(result.bits[5],"desactivated","actived")
-print "[06] extract motor state ....................... : ",convert_bit_to_string(result.bits[6],"ok","error")
-print "[07] input motor state ......................... : ",convert_bit_to_string(result.bits[7],"ok","error")
-print "[08] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[8],"False","True")
-print "[09] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[9],"False","True")
-print "[10] inside temperature sensor state (tint) .... : ",convert_bit_to_string(result.bits[10],"ok","error")
-print "[11] outside temperature sensor state (tout) ... : ",convert_bit_to_string(result.bits[11],"ok","error")
-print "[12] extract temperature sensor state (text) ... : ",convert_bit_to_string(result.bits[12],"ok","error")
-print "[13] input temperature sensor state (tinp) ..... : ",convert_bit_to_string(result.bits[13],"ok","error")
-print "[14] alarm filters state ....................... : ",convert_bit_to_string(result.bits[14],"off","on")
-
-result = client.read_coils(address=0x00, count=14, unit=0x01)
-print "===================================================="
-print "COILS"
-print "===================================================="
-print "[00] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[0],"False","True")
-print "[01] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[1],"False","True")
-print "[02] pre heating battery ....................... : ",convert_bit_to_string(result.bits[2],"not installed","installed")
-print "[03] post heating battery ...................... : ",convert_bit_to_string(result.bits[3],"not installed","installed")
-print "[04] sense of switch ........................... : ",convert_bit_to_string(result.bits[4],"no","nc")
-print "[05] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[5],"False","True")
-print "[06] selection of version ...................... : ",convert_bit_to_string(result.bits[6],"STANDBY+ABSENCE","ALLEMAGNE+STANDBY")
-print "[07] activation mode stanby absence ............ : ",convert_bit_to_string(result.bits[7],"STANBY/ABSENCE ON","STANDBY/ABSENCE OFF")
-print "[08] bypass auto control ....................... : ",convert_bit_to_string(result.bits[8],"actived","desactivated")
-print "[09] manual bypass ............................. : ",convert_bit_to_string(result.bits[9],"desactivated","activated")
-print "[10] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[10],"False","True")
-print "[11] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[11],"False","True")
-print "[12] reset filter alarm ........................ : ",convert_bit_to_string(result.bits[12],"actived","error reset")
-print "[13] reset factory parameters .................. : ",convert_bit_to_string(result.bits[13],"actived","error")
-
 result = client.read_input_registers(address=0x00, count=41, unit=0x01)
 
 if result.registers[9] == 0:
@@ -184,6 +145,45 @@ print "[37] temperature tin pre heating battery ....... : ",result.registers[37]
 print "[38] temperature tout pre heating battery ...... : ",result.registers[38]
 print "[39] temperature tin post heating battery ...... : ",result.registers[39]
 print "[40] temperature tout post heating battery ..... : ",result.registers[40]
+
+result = client.read_discrete_inputs(address=0x00, count=15, unit=0x01)
+print "===================================================="
+print "DISCRETES INPUT"
+print "===================================================="
+print "[00] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[0],"False","True")
+print "[01] version ................................... : ",convert_bit_to_string(result.bits[1],"STANDARD+ABSENCE","ALLEMAGNE+STANDBY")
+print "[02] free contact .............................. : ",convert_bit_to_string(result.bits[2],"NO","NC")
+print "[03] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[3],"False","True")
+print "[04] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[4],"False","True")
+print "[05] defroost mode ............................. : ",convert_bit_to_string(result.bits[5],"desactivated","actived")
+print "[06] extract motor state ....................... : ",convert_bit_to_string(result.bits[6],"ok","error")
+print "[07] input motor state ......................... : ",convert_bit_to_string(result.bits[7],"ok","error")
+print "[08] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[8],"False","True")
+print "[09] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[9],"False","True")
+print "[10] inside temperature sensor state (tint) .... : ",convert_bit_to_string(result.bits[10],"ok","error")
+print "[11] outside temperature sensor state (tout) ... : ",convert_bit_to_string(result.bits[11],"ok","error")
+print "[12] extract temperature sensor state (text) ... : ",convert_bit_to_string(result.bits[12],"ok","error")
+print "[13] input temperature sensor state (tinp) ..... : ",convert_bit_to_string(result.bits[13],"ok","error")
+print "[14] alarm filters state ....................... : ",convert_bit_to_string(result.bits[14],"off","on")
+
+result = client.read_coils(address=0x00, count=14, unit=0x01)
+print "===================================================="
+print "COILS"
+print "===================================================="
+print "[00] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[0],"False","True")
+print "[01] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[1],"False","True")
+print "[02] pre heating battery ....................... : ",convert_bit_to_string(result.bits[2],"not installed","installed")
+print "[03] post heating battery ...................... : ",convert_bit_to_string(result.bits[3],"not installed","installed")
+print "[04] sense of switch ........................... : ",convert_bit_to_string(result.bits[4],"no","nc")
+print "[05] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[5],"False","True")
+print "[06] selection of version ...................... : ",convert_bit_to_string(result.bits[6],"STANDBY+ABSENCE","ALLEMAGNE+STANDBY")
+print "[07] activation mode stanby absence ............ : ",convert_bit_to_string(result.bits[7],"STANBY/ABSENCE ON","STANDBY/ABSENCE OFF")
+print "[08] bypass auto control ....................... : ",convert_bit_to_string(result.bits[8],"actived","desactivated")
+print "[09] manual bypass ............................. : ",convert_bit_to_string(result.bits[9],"desactivated","activated")
+print "[10] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[10],"False","True")
+print "[11] ** UNDOCUMENTED / UNSED ** ................ : ",convert_bit_to_string(result.bits[11],"False","True")
+print "[12] reset filter alarm ........................ : ",convert_bit_to_string(result.bits[12],"actived","error reset")
+print "[13] reset factory parameters .................. : ",convert_bit_to_string(result.bits[13],"actived","error")
 
 result = client.read_holding_registers(address=0x00, count=34, unit=0x01)
 print "===================================================="
