@@ -5,7 +5,7 @@ import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
 
-client = ModbusSerialClient(method='rtu', port='/dev/ttyUSB0', baudrate=19200, bytesize=8, stopbits=1, parity="E")
+client = ModbusSerialClient(method='rtu', port='/dev/ttyVMC1', baudrate=19200, bytesize=8, stopbits=1, parity="E")
 client.connect()
 
 #import logging

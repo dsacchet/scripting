@@ -10,7 +10,7 @@ logging.basicConfig()
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-client = ModbusSerialClient(method='rtu', port='/dev/ttyUSB1', baudrate=9600, bytesize=8, stopbits=1, parity='N', timeout = 0.5)
+client = ModbusSerialClient(method='rtu', port='/dev/ttyVMC1', baudrate=9600, bytesize=8, stopbits=1, parity='N', timeout = 0.5)
 client.connect()
 
 for i in range (1, 10):

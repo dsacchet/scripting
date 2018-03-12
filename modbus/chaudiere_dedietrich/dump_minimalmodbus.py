@@ -2,7 +2,7 @@
 
 import minimalmodbus
 
-instrument = minimalmodbus.Instrument('/dev/ttyUSB1',0xA,mode='rtu')
+instrument = minimalmodbus.Instrument('/dev/ttyBOILER1',0xA,mode='rtu')
 instrument.serial.baudrate = 9600
 instrument.serial.bytesize = 8
 instrument.serial.parity = 'N'
